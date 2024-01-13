@@ -1,0 +1,66 @@
+Bash commands:
+
+Docker / Dokcer Desktop:
+
+Adjust dependencies in the docker-airflow container:
+
+docker build --rm --build-arg AIRFLOW_DEPS="datadog,dask" --build-arg PYTHON_DEPS="flask_oauthlib>=0.9" -t puckel/docker-airflow .
+
+
+Set up and run the docker compose for airflow with the given .yml file:
+
+docker-compose -f docker-compose-LocalExecutor.yml up -d
+
+In case any module, library is not able to run access duirectly the shell of the container to debug:
+
+docker exec -it <airflow_container_ID_at runtime> /bin/bash
+curl -O <https://bootstrap.pypa.io/get-pip.py>
+sudo yum install -y python3 python3-devel
+python3 get-pip.py --user
+pip3 install kafka-python, phik, etc.......
+
+Stand up the Kafka, Zookeeper, Cassandra, Kafka UI, Schema Registry and Spark container:
+
+docker-compose up -d
+
+The simple command is used because all the compose.yml files are into the pertient kafka_streaming caontainer..
+
+Create the network to make airflow container ans kafka spark container communicate:
+
+docker network create airflow-kafka
+
+
+Execute Cassandra CLI and instruct Cassandra to prepare table for predictions:
+docker exec -it cassandra /bin/bash
+
+cqlsh -u cassandra -p cassandra
+
+CREATE KEYSPACE spark_streaming WITH replication = {'class':'SimpleStrategy','replication_factor':1};
+
+
+CREATE TABLE spark_streaming.movies_rec(userId int primary key, movieId int, rating int, timestamp text);
+
+
+DESCRIBE spark_streaming.movie_rec;
+
+Run Spark .py jobs from the CLI:
+
+docker cp spark_streaming_asl_cassandra.py spark_master:/opt/bitnami/spark/
+
+Install necessary JARS to communciate with all other servises in place here:
+
+docker exec -it spark_master /bin/bash
+
+
+cd jars
+curl -O https://repo1.maven.org/maven2/com/datastax/spark/spark-cassandra-connector_2.12/3.3.0/spark-cassandra-connector_2.12-3.3.0.jar
+curl -O https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.13/3.3.0/spark-sql-kafka-0-10_2.13-3.3.0.jar
+
+submit predictions to cassandra via spark-submit command:
+
+cd ..
+spark-submit --master local[2] --jars /opt/bitnami/spark/jars/spark-sql-kafka-0-10_2.13-3.3.0.jar,/opt/bitnami/spark/jars/spark-cassandra-connector_2.12-3.3.0.jar spark_streaming_asl_cassandra.py
+
+
+
+
